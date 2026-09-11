@@ -1,0 +1,18 @@
+server: { port: 8080 }
+spring:
+  datasource:
+    url: jdbc:postgresql://10.42.53.28:5436/inventory
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa: { hibernate: { ddl-auto: update } }
+  servlet: { multipart: { max-file-size: 5MB, max-request-size: 5MB } }
+ai-service:
+  provider: openrouter
+  base-url: https://openrouter.ai/api/v1
+  api-key: "${OPENROUTER_API_KEY:}"
+jwt:
+  secret: "${JWT_SECRET:change-this-local-development-secret-at-least-32-bytes}"
+  expiration-minutes: 60
+  refresh-expiration-days: 30
+app: { image-storage-path: ./data/images }

@@ -1,0 +1,657 @@
+{
+  "info": {
+    "_postman_id": "a5e47df2-dc8b-48db-9585-119d6d16f530",
+    "name": "Fasol Doctor API",
+    "description": "Postman requests for the Fasol Doctor Spring Boot API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "33983502"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{serverUrl}}/health",
+              "host": [
+                "{{serverUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register farmer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"01710000012\",\n  \"password\": \"password123\",\n  \"name\": \"User Name\",\n  \"role\": \"FARMER\",\n  \"profileImageUrl\": null,\n  \"designation\": null,\n  \"qualification\": null,\n  \"specialization\": null,\n  \"available\": true,\n  \"online\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login farmer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login succeeded', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token', pm.response.json().accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{farmerPhone}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login succeeded', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token', pm.response.json().accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{adminPhone}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh access token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "noauth" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/refresh"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Refresh succeeded', function () { pm.response.to.have.status(200); });", "pm.collectionVariables.set('token', pm.response.json().accessToken);", "pm.collectionVariables.set('refreshToken', pm.response.json().refreshToken);"] }
+          }],
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Knowledge",
+      "item": [
+        {
+          "name": "List crops",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/crops",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "crops"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List diseases",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/diseases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "diseases"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List treatments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/treatments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "treatments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create crop as admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameBn\": \"গম\",\n  \"nameEn\": \"Wheat\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/crops",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "crops"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Predictions",
+      "item": [
+        {
+          "name": "Predict from text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"ধানের পাতায় বাদামি দাগ দেখা যাচ্ছে\",\n  \"inputType\": \"text\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/predictions/text",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "predictions",
+                "text"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Predict from image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": "{{imagePath}}"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/predictions/image",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "predictions",
+                "image"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Diagnoses",
+      "item": [
+        {
+          "name": "List diagnoses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/diagnoses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "diagnoses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get diagnosis",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/diagnoses/{{diagnosisId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "diagnoses",
+                "{{diagnosisId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Submit diagnosis feedback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outcome\": \"yes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/diagnoses/{{diagnosisId}}/feedback",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "diagnoses",
+                "{{diagnosisId}}",
+                "feedback"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Conversations",
+      "item": [
+        {
+          "name": "List conversations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/conversations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conversations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/conversations/{{conversationId}}/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conversations",
+                "{{conversationId}}",
+                "messages"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send message",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "body",
+                  "value": "Please review this diagnosis.",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/conversations/{{conversationId}}/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conversations",
+                "{{conversationId}}",
+                "messages"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Claim conversation as expert",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expertId\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/conversations/{{conversationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conversations",
+                "{{conversationId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "List users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List experts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/experts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "experts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List permissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/admin/permissions"
+          },
+          "response": []
+        },
+        {
+          "name": "Grant user permission",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/admin/users/{{permissionUserId}}/permissions/{{permissionCode}}"
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke user permission",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/admin/users/{{permissionUserId}}/permissions/{{permissionCode}}"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "serverUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "farmerPhone",
+      "value": "01710000001"
+    },
+    {
+      "key": "adminPhone",
+      "value": "01710000003"
+    },
+    {
+      "key": "expertPhone",
+      "value": "01710000004"
+    },
+    {
+      "key": "password",
+      "value": "password"
+    },
+    {
+      "key": "diagnosisId",
+      "value": "1"
+    },
+    {
+      "key": "conversationId",
+      "value": "1"
+    },
+    {
+      "key": "imagePath",
+      "value": ""
+    },
+    {
+      "key": "permissionUserId",
+      "value": "5"
+    },
+    {
+      "key": "permissionCode",
+      "value": "PREDICTIONS_CREATE"
+    }
+  ]
+}
