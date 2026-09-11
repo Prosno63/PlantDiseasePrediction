@@ -100,8 +100,9 @@ public class HttpAiPredictionClient {
             if (key.isBlank()) {
                 throw new ApiException(HttpStatus.BAD_GATEWAY, "AI provider API key is not configured");
             }
-            String instructions = "Return only JSON with exactly these fields: "
-                    + "disease (the exact predicted disease name), "
+            String instructions = "Analyze the image and return only valid JSON. Do not show reasoning. "
+                    + "Return exactly these fields: "
+                    + "disease (the exact predicted disease name written in Bangla), "
                     + "confidence (number from 0 to 100), needsExpertReview (boolean), message (Bangla string). "
                     + "Do not add markdown or extra fields.";
             Map<String, Object> body = Map.of(
