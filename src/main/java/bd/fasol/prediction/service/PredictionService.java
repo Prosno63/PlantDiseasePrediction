@@ -8,7 +8,6 @@ import bd.fasol.prediction.dto.response.*;
 import bd.fasol.repository.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.*;
 
@@ -19,31 +18,33 @@ public class PredictionService {
     private final TreatmentRepository treatments;
     private final DiagnosisRepository diagnoses;
     private final ConversationRepository conversations;
-    private final CropRepository crops;
     private final ImageStorage imageStorage;
 
     public PredictionService(HttpAiPredictionClient ai, DiseaseRepository diseases, TreatmentRepository treatments,
-            DiagnosisRepository diagnoses, ConversationRepository conversations, CropRepository crops,
+            DiagnosisRepository diagnoses, ConversationRepository conversations,
             ImageStorage imageStorage) {
         this.ai = ai;
         this.diseases = diseases;
         this.treatments = treatments;
         this.diagnoses = diagnoses;
         this.conversations = conversations;
-        this.crops = crops;
         this.imageStorage = imageStorage;
     }
 
-    @Transactional
     public PredictionResponse predictText(User farmer, TextPredictionRequest request) {
-        return record(farmer, request.inputType() != null && request.inputType().equalsIgnoreCase("voice") ? "voice" : "text", request.text(), null, ai.text(request.text()));
+        return record(farmer, request.inputType() != null && request.inputType().equalsIgnoreCase("voice") ? "voice" : "text", request.text(), null, ai.text(request.text(), sessionId(farmer)));
     }
 
-    @Transactional
     public PredictionResponse predictImage(User farmer, MultipartFile image) {
+        imageStorage.validate(image);
+        HttpAiPredictionClient.AiResult result = ai.image(image, sessionId(farmer));
         String imagePath = imageStorage.store(image);
-        HttpAiPredictionClient.AiResult result = ai.image(image);
-        return record(farmer, "image", null, imagePath, result);
+        try {
+            return record(farmer, "image", null, imagePath, result);
+        } catch (RuntimeException e) {
+            imageStorage.delete(imagePath);
+            throw e;
+        }
     }
 
     private PredictionResponse record(User farmer, String inputType, String text, String imagePath, HttpAiPredictionClient.AiResult result) {
@@ -51,7 +52,7 @@ public class PredictionService {
         Treatment treatment = disease == null ? null : treatments.findFirstByDiseaseIdAndIsActiveTrue(disease.id).orElse(null);
         Diagnosis diagnosis = new Diagnosis();
         diagnosis.farmer = farmer;
-        diagnosis.crop = crops.findAll().stream().findFirst().orElse(null);
+        diagnosis.crop = null;
         diagnosis.inputType = inputType;
         diagnosis.inputText = text;
         diagnosis.imagePath = imagePath;
@@ -69,5 +70,9 @@ public class PredictionService {
             conversations.save(conversation);
         }
         return new PredictionResponse(diagnosis.id, result.disease(), result.confidence(), result.needsExpertReview(), result.message(), TreatmentResponse.from(treatment));
+    }
+
+    private String sessionId(User farmer) {
+        return "fasol-farmer-" + farmer.id;
     }
 }

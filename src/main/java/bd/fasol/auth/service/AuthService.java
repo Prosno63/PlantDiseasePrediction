@@ -16,8 +16,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Instant;
-import java.util.UUID;
+import java.security.SecureRandom;
+import java.util.Base64;
 
 @Service
 public class AuthService {
@@ -25,6 +27,7 @@ public class AuthService {
     private final BCryptPasswordEncoder passwords;
     private final JwtService jwt;
     private final RefreshTokenRepository refreshTokens;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UserRepository users, BCryptPasswordEncoder passwords, JwtService jwt,
             RefreshTokenRepository refreshTokens) {
@@ -40,15 +43,7 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request, User actor) {
-        Role role = request.role() == null ? Role.FARMER : request.role();
-        if (role == Role.ADMIN && (actor == null || actor.role != Role.ADMIN)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Only admins can create admin accounts");
-        }
-        if (users.findByPhoneNumber(request.phoneNumber()).isPresent()) {
-            throw new ApiException(HttpStatus.CONFLICT, "Phone number already registered");
-        }
-
-        return response(users.save(newUser(request, role)));
+        return response(createUser(request, actor));
     }
 
     @Transactional
@@ -60,7 +55,6 @@ public class AuthService {
         if (users.findByPhoneNumber(request.phoneNumber()).isPresent()) {
             throw new ApiException(HttpStatus.CONFLICT, "Phone number already registered");
         }
-
         return users.save(newUser(request, role));
     }
 
@@ -69,7 +63,7 @@ public class AuthService {
         User user = users.findByPhoneNumber(request.phoneNumber())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.UNAUTHORIZED, "Invalid phone number or password"));
-        if (!passwords.matches(request.password(), user.passwordHash)) {
+        if (user.passwordHash == null || !passwords.matches(request.password(), user.passwordHash)) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid phone number or password");
         }
         return response(user);
@@ -77,8 +71,9 @@ public class AuthService {
 
     @Transactional
     public AuthResponse refresh(RefreshTokenRequest request) {
-        RefreshToken refreshToken = refreshTokens.findByTokenAndRevokedFalse(request.refreshToken())
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid refresh token"));
+        RefreshToken refreshToken = refreshTokens.findByTokenHashAndRevokedFalse(hash(request.refreshToken()))
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.UNAUTHORIZED, "Invalid refresh token"));
         if (refreshToken.expiresAt.isBefore(Instant.now())) {
             refreshToken.revoked = true;
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Refresh token expired");
@@ -88,8 +83,9 @@ public class AuthService {
     }
 
     @Transactional
-    public void logout(RefreshTokenRequest request) {
-        refreshTokens.findByTokenAndRevokedFalse(request.refreshToken()).ifPresent(token -> {
+    public void logout(RefreshTokenRequest request, User actor) {
+        refreshTokens.findByTokenHashAndRevokedFalse(hash(request.refreshToken())).ifPresent(token -> {
+            if (!token.user.id.equals(actor.id)) return;
             token.revoked = true;
             refreshTokens.save(token);
         });
@@ -112,11 +108,23 @@ public class AuthService {
 
     private AuthResponse response(User user) {
         RefreshToken refreshToken = new RefreshToken();
-        refreshToken.token = UUID.randomUUID().toString();
+        byte[] randomBytes = new byte[32];
+        secureRandom.nextBytes(randomBytes);
+        String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+        refreshToken.tokenHash = hash(rawToken);
         refreshToken.user = user;
         refreshToken.expiresAt = Instant.now().plusSeconds(jwt.refreshExpiresInSeconds());
         refreshTokens.save(refreshToken);
         return new AuthResponse(
-                jwt.issue(user), refreshToken.token, "Bearer", jwt.expiresInSeconds(), UserResponse.from(user));
+                jwt.issue(user), rawToken, "Bearer", jwt.expiresInSeconds(), UserResponse.from(user));
+    }
+
+    private String hash(String value) {
+        try {
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is unavailable", e);
+        }
     }
 }

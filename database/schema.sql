@@ -1,6 +1,15 @@
--- Fasol Doctor PostgreSQL schema
--- Database: inventory
+-- Fasol Doctor PostgreSQL master schema.
+-- Run this file against the application database in order.
+-- It is safe to run repeatedly. Existing legacy refresh tokens are revoked.
 
+BEGIN;
+
+-- 1. Remove the deleted permission system before creating application tables.
+DROP TABLE IF EXISTS user_permissions;
+DROP TABLE IF EXISTS role_permissions;
+DROP TABLE IF EXISTS permissions;
+
+-- 2. Core users table.
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
     phone_number VARCHAR(255) NOT NULL UNIQUE,
@@ -21,45 +30,66 @@ CREATE TABLE IF NOT EXISTS users (
     CONSTRAINT users_role_check CHECK (role IN ('FARMER', 'EXPERT', 'ADMIN', 'FIELD_WORKER'))
 );
 
+-- 3. Add columns introduced after the original users table was deployed.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image_url VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS designation VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qualification VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS specialization VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS available BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS online BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS district VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS upazila VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+
+-- 4. Refresh tokens store only SHA-256 hashes, never bearer tokens.
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     id BIGSERIAL PRIMARY KEY,
-    token VARCHAR(255) NOT NULL UNIQUE,
+    token_hash VARCHAR(64) NOT NULL,
     user_id BIGINT NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
     revoked BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    version BIGINT,
     CONSTRAINT refresh_tokens_user_fk FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
+-- Upgrade databases that still have the old plaintext token column.
+ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS token_hash VARCHAR(64);
+ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS version BIGINT;
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema()
+          AND table_name = 'refresh_tokens'
+          AND column_name = 'token'
+    ) THEN
+        -- Old tokens cannot be trusted after changing storage format; revoke them.
+        UPDATE refresh_tokens
+        SET token_hash = md5(random()::text || clock_timestamp()::text)
+                       || md5(random()::text || clock_timestamp()::text),
+            revoked = TRUE
+        WHERE token_hash IS NULL;
+        ALTER TABLE refresh_tokens DROP COLUMN token;
+    END IF;
+END $$;
+
+-- Any incomplete prior migration is also made safe by invalidating its null rows.
+UPDATE refresh_tokens
+SET token_hash = md5(random()::text || clock_timestamp()::text)
+               || md5(random()::text || clock_timestamp()::text),
+    revoked = TRUE
+WHERE token_hash IS NULL;
+
+ALTER TABLE refresh_tokens ALTER COLUMN token_hash SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS refresh_tokens_token_hash_uidx ON refresh_tokens (token_hash);
 CREATE INDEX IF NOT EXISTS refresh_tokens_user_idx ON refresh_tokens (user_id);
-CREATE INDEX IF NOT EXISTS refresh_tokens_active_idx ON refresh_tokens (token, revoked);
+DROP INDEX IF EXISTS refresh_tokens_active_idx;
+CREATE INDEX IF NOT EXISTS refresh_tokens_active_idx ON refresh_tokens (token_hash, revoked);
 
-CREATE TABLE IF NOT EXISTS permissions (
-    id BIGSERIAL PRIMARY KEY,
-    code VARCHAR(100) NOT NULL UNIQUE,
-    description VARCHAR(255)
-);
-
-CREATE TABLE IF NOT EXISTS role_permissions (
-    id BIGSERIAL PRIMARY KEY,
-    role VARCHAR(32) NOT NULL,
-    permission_id BIGINT NOT NULL,
-    CONSTRAINT role_permissions_permission_fk FOREIGN KEY (permission_id) REFERENCES permissions (id),
-    CONSTRAINT role_permissions_unique UNIQUE (role, permission_id)
-);
-
-CREATE TABLE IF NOT EXISTS user_permissions (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    permission_id BIGINT NOT NULL,
-    CONSTRAINT user_permissions_user_fk FOREIGN KEY (user_id) REFERENCES users (id),
-    CONSTRAINT user_permissions_permission_fk FOREIGN KEY (permission_id) REFERENCES permissions (id),
-    CONSTRAINT user_permissions_unique UNIQUE (user_id, permission_id)
-);
-
-CREATE INDEX IF NOT EXISTS role_permissions_role_idx ON role_permissions (role);
-CREATE INDEX IF NOT EXISTS user_permissions_user_idx ON user_permissions (user_id);
-
+-- 5. Crop, disease, and treatment knowledge base.
 CREATE TABLE IF NOT EXISTS crop (
     id BIGSERIAL PRIMARY KEY,
     name_bn VARCHAR(255),
@@ -90,6 +120,7 @@ CREATE TABLE IF NOT EXISTS treatment (
     CONSTRAINT treatment_disease_fk FOREIGN KEY (disease_id) REFERENCES disease (id)
 );
 
+-- 6. Diagnosis history.
 CREATE TABLE IF NOT EXISTS diagnosis (
     id BIGSERIAL PRIMARY KEY,
     farmer_id BIGINT NOT NULL,
@@ -113,6 +144,7 @@ CREATE TABLE IF NOT EXISTS diagnosis (
     CONSTRAINT diagnosis_outcome_check CHECK (outcome_feedback IN ('yes', 'no', 'somewhat') OR outcome_feedback IS NULL)
 );
 
+-- 7. Expert conversations and messages.
 CREATE TABLE IF NOT EXISTS conversation (
     id BIGSERIAL PRIMARY KEY,
     farmer_id BIGINT NOT NULL,
@@ -137,6 +169,7 @@ CREATE TABLE IF NOT EXISTS messages (
     CONSTRAINT messages_sender_fk FOREIGN KEY (sender_id) REFERENCES users (id)
 );
 
+-- 8. Query indexes used by the API.
 CREATE INDEX IF NOT EXISTS disease_crop_idx ON disease (crop_id);
 CREATE INDEX IF NOT EXISTS treatment_disease_idx ON treatment (disease_id);
 CREATE INDEX IF NOT EXISTS diagnosis_farmer_created_idx ON diagnosis (farmer_id, created_at DESC);
@@ -146,18 +179,4 @@ CREATE INDEX IF NOT EXISTS conversation_expert_idx ON conversation (expert_id);
 CREATE INDEX IF NOT EXISTS conversation_open_idx ON conversation (expert_id, resolved);
 CREATE INDEX IF NOT EXISTS messages_conversation_created_idx ON messages (conversation_id, created_at);
 
-ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image_url VARCHAR(255);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS designation VARCHAR(255);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS qualification VARCHAR(255);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS specialization VARCHAR(255);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS available BOOLEAN NOT NULL DEFAULT TRUE;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS online BOOLEAN NOT NULL DEFAULT FALSE;
-
-select *
-from user_permissions;
-
-select *
-from role_permissions;
-
-select *
-from permissions;
+COMMIT;

@@ -6,7 +6,6 @@ import bd.fasol.diagnosis.service.DiagnosisService;
 import bd.fasol.model.User;
 import jakarta.validation.Valid;
 import java.util.List;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,20 +25,20 @@ public class DiagnosisController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('DIAGNOSES_READ')")
     public List<DiagnosisResponse> list(
-            @RequestParam(required = false) Long farmerId, Authentication authentication) {
-        return service.list((User) authentication.getPrincipal(), farmerId);
+            @RequestParam(required = false) Long farmerId,
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(defaultValue = "0") int offset,
+            Authentication authentication) {
+        return service.list((User) authentication.getPrincipal(), farmerId, limit, offset);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('DIAGNOSES_READ')")
     public DiagnosisResponse get(@PathVariable Long id, Authentication authentication) {
         return service.get((User) authentication.getPrincipal(), id);
     }
 
     @PostMapping("/{id}/feedback")
-    @PreAuthorize("hasAuthority('DIAGNOSES_FEEDBACK')")
     public DiagnosisResponse feedback(
             @PathVariable Long id,
             @Valid @RequestBody FeedbackRequest request,

@@ -7,7 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
+import jakarta.persistence.Column;
 import jakarta.persistence.ManyToOne;
 import java.time.Instant;
 
@@ -26,7 +26,7 @@ public class Diagnosis {
 
     public String inputType;
 
-    @Lob
+    @Column(columnDefinition = "TEXT")
     public String inputText;
     public String imagePath;
 
@@ -37,7 +37,7 @@ public class Diagnosis {
     public Double confidence;
     public boolean needsExpertReview;
 
-    @Lob
+    @Column(columnDefinition = "TEXT")
     public String aiMessage;
 
     @ManyToOne

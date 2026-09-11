@@ -5,9 +5,9 @@ import bd.fasol.conversation.dto.response.ConversationResponse;
 import bd.fasol.conversation.dto.response.MessageResponse;
 import bd.fasol.conversation.service.ConversationService;
 import bd.fasol.model.User;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.MediaType;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -29,19 +29,22 @@ public class ConversationController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('CONVERSATIONS_READ')")
-    public List<ConversationResponse> list(Authentication authentication) {
-        return service.list((User) authentication.getPrincipal());
+    public List<ConversationResponse> list(
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(defaultValue = "0") int offset,
+            Authentication authentication) {
+        return service.list((User) authentication.getPrincipal(), limit, offset);
     }
 
     @GetMapping("/{id}/messages")
-    @PreAuthorize("hasAuthority('CONVERSATIONS_READ')")
-    public List<MessageResponse> messages(@PathVariable Long id, Authentication authentication) {
-        return service.messages((User) authentication.getPrincipal(), id);
+    public List<MessageResponse> messages(@PathVariable Long id,
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestParam(defaultValue = "0") int offset,
+            Authentication authentication) {
+        return service.messages((User) authentication.getPrincipal(), id, limit, offset);
     }
 
     @PostMapping(value = "/{id}/messages", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAuthority('CONVERSATIONS_MESSAGE')")
     public MessageResponse send(
             @PathVariable Long id,
             @RequestParam(required = false) String body,
@@ -51,10 +54,9 @@ public class ConversationController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAuthority('CONVERSATIONS_MANAGE')")
     public ConversationResponse update(
             @PathVariable Long id,
-            @RequestBody UpdateConversationRequest request,
+            @Valid @RequestBody UpdateConversationRequest request,
             Authentication authentication) {
         return service.update((User) authentication.getPrincipal(), id, request);
     }

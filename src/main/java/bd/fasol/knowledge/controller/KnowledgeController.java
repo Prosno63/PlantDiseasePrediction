@@ -32,37 +32,34 @@ public class KnowledgeController {
     }
 
     @GetMapping("/crops")
-    @PreAuthorize("hasAuthority('KNOWLEDGE_READ')")
     public List<CropResponse> crops(@RequestParam(required = false) Boolean activeOnly) {
         return service.crops(activeOnly);
     }
 
     @GetMapping("/diseases")
-    @PreAuthorize("hasAuthority('KNOWLEDGE_READ')")
     public List<DiseaseResponse> diseases(@RequestParam(required = false) Long cropId) {
         return service.diseases(cropId);
     }
 
     @GetMapping("/treatments")
-    @PreAuthorize("hasAuthority('KNOWLEDGE_READ')")
     public List<TreatmentResponse> treatments(@RequestParam(required = false) Long diseaseId) {
         return service.treatments(diseaseId);
     }
 
     @PostMapping("/admin/crops")
-    @PreAuthorize("hasAuthority('KNOWLEDGE_WRITE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CropResponse> createCrop(@Valid @RequestBody CreateCropRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createCrop(request));
     }
 
     @PutMapping("/admin/crops/{id}")
-    @PreAuthorize("hasAuthority('KNOWLEDGE_WRITE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public CropResponse updateCrop(@PathVariable Long id, @Valid @RequestBody UpdateCropRequest request) {
         return service.updateCrop(id, request);
     }
 
     @DeleteMapping("/admin/crops/{id}")
-    @PreAuthorize("hasAuthority('KNOWLEDGE_WRITE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteCrop(@PathVariable Long id) {
         service.deleteCrop(id);
         return ResponseEntity.noContent().build();

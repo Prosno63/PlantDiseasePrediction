@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.*;
+import org.springframework.data.domain.PageRequest;
 
 @Service
 public class ConversationService {
@@ -28,17 +29,22 @@ public class ConversationService {
     }
 
     @Transactional(readOnly = true)
-    public List<ConversationResponse> list(User actor) {
-        List<Conversation> list = actor.role == Role.FARMER ? conversations.findByFarmerId(actor.id)
-                : actor.role == Role.EXPERT ? conversations.findByExpertIdOrExpertIsNullAndResolvedFalse(actor.id)
-                        : conversations.findAll();
+    public List<ConversationResponse> list(User actor, int limit, int offset) {
+        if (actor.role == Role.FIELD_WORKER) return List.of();
+        limit = Math.max(1, Math.min(limit, 100));
+        var page = PageRequest.of(Math.max(0, offset) / limit, limit);
+        List<Conversation> list = actor.role == Role.FARMER ? conversations.findByFarmerId(actor.id, page)
+                : actor.role == Role.EXPERT ? conversations.findByExpertIdOrExpertIsNullAndResolvedFalse(actor.id, page)
+                        : conversations.findAll(page).getContent();
         return list.stream().map(ConversationResponse::from).toList();
     }
 
     @Transactional
-    public List<MessageResponse> messages(User actor, Long id) {
+    public List<MessageResponse> messages(User actor, Long id, int limit, int offset) {
         visible(actor, id);
-        List<Message> list = messages.findByConversationIdOrderByCreatedAt(id);
+        limit = Math.max(1, Math.min(limit, 100));
+        List<Message> list = messages.findByConversationIdOrderByCreatedAt(id,
+                PageRequest.of(Math.max(0, offset) / limit, limit));
         list.stream().filter(m -> !m.sender.id.equals(actor.id)).forEach(m -> m.isRead = true);
         messages.saveAll(list);
         return list.stream().map(MessageResponse::from).toList();
@@ -62,7 +68,9 @@ public class ConversationService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Expert or admin required");
         Conversation c = conversations.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Conversation not found"));
         if (request.expertId() != null)
-            c.expert = users.findById(request.expertId()).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Expert not found"));
+            c.expert = users.findById(request.expertId())
+                    .filter(user -> user.role == Role.EXPERT)
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Expert not found"));
         else if (actor.role == Role.EXPERT)
             c.expert = actor;
         if ("resolved".equalsIgnoreCase(request.status()))
@@ -71,6 +79,8 @@ public class ConversationService {
     }
 
     private Conversation visible(User actor, Long id) {
+        if (actor.role == Role.FIELD_WORKER)
+            throw new ApiException(HttpStatus.FORBIDDEN, "Field workers cannot access conversations");
         Conversation c = conversations.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Conversation not found"));
         if (actor.role == Role.FARMER && !c.farmer.id.equals(actor.id))
             throw new ApiException(HttpStatus.NOT_FOUND, "Conversation not found");

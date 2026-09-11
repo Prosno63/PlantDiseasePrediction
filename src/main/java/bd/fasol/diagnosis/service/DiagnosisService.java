@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
+import org.springframework.data.domain.PageRequest;
 
 @Service
 public class DiagnosisService {
@@ -21,9 +22,13 @@ public class DiagnosisService {
     }
 
     @Transactional(readOnly = true)
-    public List<DiagnosisResponse> list(User actor, Long farmerId) {
+    public List<DiagnosisResponse> list(User actor, Long farmerId, int limit, int offset) {
+        if (actor.role == Role.FIELD_WORKER)
+            throw new ApiException(HttpStatus.FORBIDDEN, "Field workers cannot access diagnosis history");
+        limit = Math.max(1, Math.min(limit, 100));
+        var page = PageRequest.of(Math.max(0, offset) / limit, limit);
         Long id = actor.role == Role.FARMER ? actor.id : farmerId;
-        return (id == null ? diagnoses.findAll() : diagnoses.findByFarmerIdOrderByCreatedAtDesc(id)).stream()
+        return (id == null ? diagnoses.findAll(page).getContent() : diagnoses.findByFarmerIdOrderByCreatedAtDesc(id, page)).stream()
                 .map(DiagnosisResponse::from).toList();
     }
 
@@ -44,6 +49,8 @@ public class DiagnosisService {
     }
 
     private Diagnosis visible(User actor, Long id) {
+        if (actor.role == Role.FIELD_WORKER)
+            throw new ApiException(HttpStatus.FORBIDDEN, "Field workers cannot access diagnoses");
         Diagnosis d = diagnoses.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Diagnosis not found"));
         if (actor.role == Role.FARMER && !d.farmer.id.equals(actor.id))
             throw new ApiException(HttpStatus.NOT_FOUND, "Diagnosis not found");

@@ -1,17 +1,29 @@
 server: { port: 8080 }
 spring:
+  config:
+    import: optional:file:.env[.properties]
   datasource:
     url: jdbc:postgresql://10.42.53.28:5436/inventory
     username: postgres
     password: "${DB_PASSWORD}"
     driver-class-name: org.postgresql.Driver
-  jpa: { hibernate: { ddl-auto: update } }
+  jpa:
+    open-in-view: false
+    hibernate: { ddl-auto: validate }
+  mvc:
+    cors:
+      allowed-origins: https://app.example.com
+      allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+      allowed-headers: Authorization,Content-Type,Accept
+      allow-credentials: true
 ai-service:
-  provider: openrouter
-  base-url: https://openrouter.ai/api/v1
-  api-key: "${OPENROUTER_API_KEY}"
+  provider: opencode
+  base-url: https://opencode.ai/zen/go/v1
+  api-key: "${OPENCODE_API_KEY}"
+  model: deepseek-v4-flash-vision-exp
 jwt:
   secret: "${JWT_SECRET}"
   expiration-minutes: 60
   refresh-expiration-days: 30
-app: { image-storage-path: ./data/images }
+app:
+  image-storage-path: ./data/images

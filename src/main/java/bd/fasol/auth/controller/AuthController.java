@@ -45,8 +45,8 @@ public class AuthController {
     @PostMapping("/logout")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> logout(
-            @Valid @RequestBody RefreshTokenRequest request) {
-        service.logout(request);
+            @Valid @RequestBody RefreshTokenRequest request, Authentication authentication) {
+        service.logout(request, (User) authentication.getPrincipal());
         return ResponseEntity.ok().build();
     }
 }

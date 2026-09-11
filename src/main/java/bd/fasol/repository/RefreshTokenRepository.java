@@ -3,7 +3,11 @@ package bd.fasol.repository;
 import bd.fasol.model.RefreshToken;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
-    Optional<RefreshToken> findByTokenAndRevokedFalse(String token);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<RefreshToken> findByTokenHashAndRevokedFalse(String tokenHash);
+    void deleteByUserId(Long userId);
 }

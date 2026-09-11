@@ -22,12 +22,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwt;
     private final UserRepository users;
-    private final PermissionService permissions;
 
-    public JwtAuthenticationFilter(JwtService jwt, UserRepository users, PermissionService permissions) {
+    public JwtAuthenticationFilter(JwtService jwt, UserRepository users) {
         this.jwt = jwt;
         this.users = users;
-        this.permissions = permissions;
     }
 
     @Override
@@ -39,8 +37,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String token = header.substring(7);
                 Long userId = jwt.userId(token);
                 User user = users.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
-                var authorities = permissions.authorities(user);
-                authorities.add(new SimpleGrantedAuthority("ROLE_" + user.role));
+                var authorities = java.util.List.of(new SimpleGrantedAuthority("ROLE_" + user.role));
                 SecurityContextHolder.getContext().setAuthentication(
                         new UsernamePasswordAuthenticationToken(user, null, authorities));
             } catch (Exception e) {

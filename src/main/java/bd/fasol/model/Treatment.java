@@ -5,7 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
+import jakarta.persistence.Column;
 import jakarta.persistence.ManyToOne;
 
 @Entity
@@ -18,7 +18,7 @@ public class Treatment {
   @ManyToOne(optional = false)
   public Disease disease;
 
-  @Lob
+  @Column(columnDefinition = "TEXT")
   public String textBn;
   public boolean isOrganicPriority;
   public String sourceNote;
