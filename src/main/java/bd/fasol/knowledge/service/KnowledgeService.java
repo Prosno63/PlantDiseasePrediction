@@ -10,6 +10,7 @@ import bd.fasol.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.*;
 
 @Service
@@ -27,7 +28,9 @@ public class KnowledgeService {
     @Transactional(readOnly = true)
     public List<CropResponse> crops(Boolean activeOnly) {
         List<Crop> list = Boolean.TRUE.equals(activeOnly) ? crops.findByIsActiveTrue() : crops.findAll();
-        return list.stream().map(CropResponse::from).toList();
+        return list.stream()
+                .sorted(Comparator.comparingInt(c -> c.displayOrder == null ? 0 : c.displayOrder))
+                .map(CropResponse::from).toList();
     }
 
     @Transactional(readOnly = true)
@@ -49,8 +52,16 @@ public class KnowledgeService {
         crop.nameEn = request.nameEn();
         crop.imageUrl = request.imageUrl();
         crop.selectable = request.selectable() != null ? request.selectable() : true;
+        crop.displayOrder = nextDisplayOrder();
         crop.isActive = true;
+        crop.updatedAt = Instant.now();
         return CropResponse.from(crops.save(crop));
+    }
+
+    private Integer nextDisplayOrder() {
+        return crops.findAll().stream()
+                .mapToInt(c -> c.displayOrder == null ? 0 : c.displayOrder)
+                .max().orElse(0) + 1;
     }
 
     @Transactional
@@ -61,6 +72,8 @@ public class KnowledgeService {
         if (request.isActive() != null) crop.isActive = request.isActive();
         if (request.imageUrl() != null) crop.imageUrl = request.imageUrl();
         if (request.selectable() != null) crop.selectable = request.selectable();
+        if (request.displayOrder() != null) crop.displayOrder = request.displayOrder();
+        crop.updatedAt = Instant.now();
         return CropResponse.from(crops.save(crop));
     }
 

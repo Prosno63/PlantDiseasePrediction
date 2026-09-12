@@ -14,54 +14,56 @@ import java.util.*;
 @Service
 public class PredictionService {
     private final HttpAiPredictionClient ai;
-    private final DiseaseRepository diseases;
-    private final TreatmentRepository treatments;
+    private final CropRepository crops;
     private final DiagnosisRepository diagnoses;
     private final ConversationRepository conversations;
     private final ImageStorage imageStorage;
 
-    public PredictionService(HttpAiPredictionClient ai, DiseaseRepository diseases, TreatmentRepository treatments,
+    public PredictionService(HttpAiPredictionClient ai, CropRepository crops,
             DiagnosisRepository diagnoses, ConversationRepository conversations,
             ImageStorage imageStorage) {
         this.ai = ai;
-        this.diseases = diseases;
-        this.treatments = treatments;
+        this.crops = crops;
         this.diagnoses = diagnoses;
         this.conversations = conversations;
         this.imageStorage = imageStorage;
     }
 
-    public PredictionResponse predictText(User farmer, TextPredictionRequest request) {
-        return record(farmer, request.inputType() != null && request.inputType().equalsIgnoreCase("voice") ? "voice" : "text", request.text(), null, ai.text(request.text(), sessionId(farmer)));
+    public PredictionResponse predictText(User farmer, String cropName, TextPredictionRequest request) {
+        Crop crop = resolveCrop(cropName);
+        return record(farmer, crop, request.inputType() != null && request.inputType().equalsIgnoreCase("voice") ? "voice" : "text", request.text(), null, ai.text(request.text(), cropName));
     }
 
-    public PredictionResponse predictImage(User farmer, MultipartFile image) {
+    public PredictionResponse predictImage(User farmer, String cropName, MultipartFile image) {
+        Crop crop = resolveCrop(cropName);
         imageStorage.validate(image);
-        HttpAiPredictionClient.AiResult result = ai.image(image, sessionId(farmer));
+        HttpAiPredictionClient.AiResult result = ai.image(image, cropName);
         String imagePath = imageStorage.store(image);
         try {
-            return record(farmer, "image", null, imagePath, result);
+            return record(farmer, crop, "image", null, imagePath, result);
         } catch (RuntimeException e) {
             imageStorage.delete(imagePath);
             throw e;
         }
     }
 
-    private PredictionResponse record(User farmer, String inputType, String text, String imagePath, HttpAiPredictionClient.AiResult result) {
-        Disease disease = diseases.findByModelClassLabelAndIsActiveTrue(result.disease()).orElse(null);
-        Treatment treatment = disease == null ? null : treatments.findFirstByDiseaseIdAndIsActiveTrue(disease.id).orElse(null);
+    private Crop resolveCrop(String cropName) {
+        return crops.findByNameEnIgnoreCaseAndIsActiveTrue(cropName)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Unknown crop: " + cropName));
+    }
+
+    private PredictionResponse record(User farmer, Crop crop, String inputType, String text, String imagePath, HttpAiPredictionClient.AiResult result) {
         Diagnosis diagnosis = new Diagnosis();
         diagnosis.farmer = farmer;
-        diagnosis.crop = null;
+        diagnosis.crop = crop;
         diagnosis.inputType = inputType;
         diagnosis.inputText = text;
         diagnosis.imagePath = imagePath;
-        diagnosis.disease = disease;
         diagnosis.diseaseNameRaw = result.disease();
         diagnosis.confidence = result.confidence();
         diagnosis.needsExpertReview = result.needsExpertReview();
         diagnosis.aiMessage = result.message();
-        diagnosis.treatment = treatment;
+        diagnosis.treatment = null;
         diagnoses.save(diagnosis);
         if (result.needsExpertReview()) {
             Conversation conversation = new Conversation();
@@ -69,10 +71,6 @@ public class PredictionService {
             conversation.diagnosis = diagnosis;
             conversations.save(conversation);
         }
-        return new PredictionResponse(diagnosis.id, result.disease(), result.confidence(), result.needsExpertReview(), result.message(), TreatmentResponse.from(treatment));
-    }
-
-    private String sessionId(User farmer) {
-        return "fasol-farmer-" + farmer.id;
+        return new PredictionResponse(diagnosis.id, result.disease(), result.confidence(), result.needsExpertReview(), result.message(), TreatmentResponse.from(null));
     }
 }

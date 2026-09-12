@@ -2,6 +2,8 @@ package bd.fasol.auth.dto.request;
 
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
+
 public record UpdateExpertRequest(
         @Size(max = 100) String name,
         String profileImageUrl,
@@ -14,5 +16,10 @@ public record UpdateExpertRequest(
         String upazila,
         Double latitude,
         Double longitude,
-        Boolean isActive
+        Boolean isActive,
+        List<Long> cropIds,
+        Boolean acceptingConsultations,
+        String availabilityStatus,
+        List<Double> location,
+        Integer displayOrder
 ) {}

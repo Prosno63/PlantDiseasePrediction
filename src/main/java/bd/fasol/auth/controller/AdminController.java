@@ -27,11 +27,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import org.springframework.data.domain.PageRequest;
 
 @RestController
-@RequestMapping("/api/v1/admin")
+@RequestMapping("/api/v1")
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
     private final AuthService authService;
@@ -43,6 +45,19 @@ public class AdminController {
         this.authService = authService;
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+    }
+
+    private void setLocation(User expert, List<Double> location, Double latitude, Double longitude) {
+        if (location != null) {
+            if (location.size() != 2) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "location must be [latitude, longitude]");
+            }
+            expert.latitude = location.get(0);
+            expert.longitude = location.get(1);
+        } else {
+            if (latitude != null) expert.latitude = latitude;
+            if (longitude != null) expert.longitude = longitude;
+        }
     }
 
     @GetMapping("/users")
@@ -106,6 +121,7 @@ public class AdminController {
     @GetMapping("/experts")
     public List<ExpertResponse> listExperts() {
         return userRepository.findByRole(Role.EXPERT).stream()
+                .sorted(Comparator.comparingInt(u -> u.displayOrder == null ? 0 : u.displayOrder))
                 .map(ExpertResponse::from)
                 .toList();
     }
@@ -137,11 +153,21 @@ public class AdminController {
         if (request.online() != null) expert.online = request.online();
         expert.district = request.district();
         expert.upazila = request.upazila();
-        expert.latitude = request.latitude();
-        expert.longitude = request.longitude();
+        setLocation(expert, request.location(), request.latitude(), request.longitude());
+        if (request.cropIds() != null) expert.cropIds.addAll(request.cropIds());
+        if (request.acceptingConsultations() != null) expert.acceptingConsultations = request.acceptingConsultations();
+        if (request.availabilityStatus() != null) expert.availabilityStatus = request.availabilityStatus();
+        expert.displayOrder = nextExpertOrder();
+        expert.updatedAt = Instant.now();
         expert.role = Role.EXPERT;
         User saved = userRepository.save(expert);
         return ResponseEntity.status(HttpStatus.CREATED).body(ExpertResponse.from(saved));
+    }
+
+    private int nextExpertOrder() {
+        return userRepository.findByRole(Role.EXPERT).stream()
+                .mapToInt(u -> u.displayOrder == null ? 0 : u.displayOrder)
+                .max().orElse(0) + 1;
     }
 
     @PutMapping("/experts/{id}")
@@ -160,8 +186,16 @@ public class AdminController {
         if (request.online() != null) expert.online = request.online();
         if (request.district() != null) expert.district = request.district();
         if (request.upazila() != null) expert.upazila = request.upazila();
-        if (request.latitude() != null) expert.latitude = request.latitude();
-        if (request.longitude() != null) expert.longitude = request.longitude();
+        setLocation(expert, request.location(), request.latitude(), request.longitude());
+        if (request.isActive() != null) expert.isActive = request.isActive();
+        if (request.cropIds() != null) {
+            expert.cropIds.clear();
+            expert.cropIds.addAll(request.cropIds());
+        }
+        if (request.acceptingConsultations() != null) expert.acceptingConsultations = request.acceptingConsultations();
+        if (request.availabilityStatus() != null) expert.availabilityStatus = request.availabilityStatus();
+        if (request.displayOrder() != null) expert.displayOrder = request.displayOrder();
+        expert.updatedAt = Instant.now();
         return ExpertResponse.from(userRepository.save(expert));
     }
 

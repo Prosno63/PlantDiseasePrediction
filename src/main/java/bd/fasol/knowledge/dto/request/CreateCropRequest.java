@@ -7,5 +7,6 @@ public record CreateCropRequest(
         @NotBlank @Size(max = 100) String nameBn,
         @NotBlank @Size(max = 100) String nameEn,
         String imageUrl,
-        Boolean selectable
+        Boolean selectable,
+        Integer displayOrder
 ) {}

@@ -46,19 +46,19 @@ public class KnowledgeController {
         return service.treatments(diseaseId);
     }
 
-    @PostMapping("/admin/crops")
+    @PostMapping("/crops")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CropResponse> createCrop(@Valid @RequestBody CreateCropRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.createCrop(request));
+    public CropResponse createCrop(@Valid @RequestBody CreateCropRequest request) {
+        return service.createCrop(request);
     }
 
-    @PutMapping("/admin/crops/{id}")
+    @PutMapping("/crops/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public CropResponse updateCrop(@PathVariable Long id, @Valid @RequestBody UpdateCropRequest request) {
         return service.updateCrop(id, request);
     }
 
-    @DeleteMapping("/admin/crops/{id}")
+    @DeleteMapping("/crops/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteCrop(@PathVariable Long id) {
         service.deleteCrop(id);

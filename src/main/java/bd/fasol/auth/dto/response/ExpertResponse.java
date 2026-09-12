@@ -1,28 +1,30 @@
 package bd.fasol.auth.dto.response;
 
-import bd.fasol.model.Role;
 import bd.fasol.model.User;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 public record ExpertResponse(
         Long id,
-        String phoneNumber,
         String name,
         String profileImageUrl,
         String designation,
         String qualification,
-        String specialization,
-        boolean available,
-        boolean online,
-        String district,
-        String upazila,
-        Double latitude,
-        Double longitude,
-        boolean isActive,
-        Role role
+        List<Long> cropIds,
+        boolean active,
+        boolean acceptingConsultations,
+        String availabilityStatus,
+        List<Double> location,
+        Integer displayOrder,
+        Instant updatedAt
 ) {
     public static ExpertResponse from(User x) {
-        return new ExpertResponse(x.id, x.phoneNumber, x.name, x.profileImageUrl,
-                x.designation, x.qualification, x.specialization, x.available, x.online,
-                x.district, x.upazila, x.latitude, x.longitude, true, x.role);
+        List<Double> location = x.latitude == null || x.longitude == null
+                ? null : List.of(x.latitude, x.longitude);
+        return new ExpertResponse(x.id, x.name, x.profileImageUrl, x.designation, x.qualification,
+                new ArrayList<>(x.cropIds), x.isActive, x.acceptingConsultations,
+                x.availabilityStatus, location, x.displayOrder, x.updatedAt);
     }
 }

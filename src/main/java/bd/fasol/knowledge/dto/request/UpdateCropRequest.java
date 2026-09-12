@@ -7,5 +7,6 @@ public record UpdateCropRequest(
         @Size(max = 100) String nameEn,
         Boolean isActive,
         String imageUrl,
-        Boolean selectable
+        Boolean selectable,
+        Integer displayOrder
 ) {}
