@@ -321,6 +321,38 @@
           "response": []
         },
         {
+          "name": "Predict from text (auto crop)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"বেগুনের পাতায় দাগ দেখা যাচ্ছে\",\n  \"inputType\": \"text\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{serverUrl}}/predict/text",
+              "host": [
+                "{{serverUrl}}"
+              ],
+              "path": [
+                "predict",
+                "text"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Predict from image",
           "request": {
             "method": "POST",
@@ -669,7 +701,7 @@
   "variable": [
     {
       "key": "serverUrl",
-      "value": "http://localhost:8080"
+      "value": "http://163.227.239.194:8081"
     },
     {
       "key": "crop",
@@ -677,7 +709,7 @@
     },
     {
       "key": "baseUrl",
-      "value": "http://localhost:8080/api/v1"
+      "value": "http://163.227.239.194:8081/api/v1"
     },
     {
       "key": "token",
