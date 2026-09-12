@@ -43,7 +43,8 @@ public class HttpAiPredictionClient {
     public record AiResult(String disease, Double confidence, boolean needsExpertReview, String message) {}
 
     public AiResult text(String text, String crop) {
-        return call(client.post().uri(baseUrl + "/predict/" + crop + "/text")
+        String path = "eggplant".equalsIgnoreCase(crop) ? "/predict/eggplant/text" : "/predict/text";
+        return call(client.post().uri(baseUrl + path)
                 .header("X-API-Key", key)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("text", text)));
@@ -58,7 +59,8 @@ public class HttpAiPredictionClient {
                     return image.getOriginalFilename();
                 }
             });
-            return call(client.post().uri(baseUrl + "/predict/" + crop + "/image")
+            String path = "eggplant".equalsIgnoreCase(crop) ? "/predict/eggplant/image" : "/predict/image";
+            return call(client.post().uri(baseUrl + path)
                     .header("X-API-Key", key)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body));

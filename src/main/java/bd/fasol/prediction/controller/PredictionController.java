@@ -39,9 +39,9 @@ public class PredictionController {
             Authentication authentication) {
         String firstWord = request.text().trim().split("\\s+", 2)[0].toLowerCase(Locale.ROOT);
         String crop = firstWord.startsWith("ধান") || firstWord.startsWith("rice")
-                ? "Rice"
+                ? "rice"
                 : firstWord.startsWith("বেগুন") || firstWord.startsWith("eggplant")
-                        ? "Eggplant"
+                        ? "eggplant"
                         : null;
         if (crop == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
