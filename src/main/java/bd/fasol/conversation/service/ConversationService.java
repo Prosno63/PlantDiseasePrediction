@@ -58,7 +58,9 @@ public class ConversationService {
         message.conversation = visible(actor, id);
         message.sender = actor;
         message.body = body;
-        message.imagePath = image == null ? null : imageStorage.store(image);
+        if (image != null) imageStorage.validate(image);
+        message.imageData = image == null ? null : imageStorage.store(image);
+        message.imageContentType = image == null ? null : image.getContentType();
         return MessageResponse.from(messages.save(message));
     }
 

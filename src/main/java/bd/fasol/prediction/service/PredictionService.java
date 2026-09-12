@@ -31,20 +31,14 @@ public class PredictionService {
 
     public PredictionResponse predictText(User farmer, String cropName, TextPredictionRequest request) {
         Crop crop = resolveCrop(cropName);
-        return record(farmer, crop, request.inputType() != null && request.inputType().equalsIgnoreCase("voice") ? "voice" : "text", request.text(), null, ai.text(request.text(), cropName));
+        return record(farmer, crop, request.inputType() != null && request.inputType().equalsIgnoreCase("voice") ? "voice" : "text", request.text(), null, null, ai.text(request.text(), cropName));
     }
 
     public PredictionResponse predictImage(User farmer, String cropName, MultipartFile image) {
         Crop crop = resolveCrop(cropName);
         imageStorage.validate(image);
         HttpAiPredictionClient.AiResult result = ai.image(image, cropName);
-        String imagePath = imageStorage.store(image);
-        try {
-            return record(farmer, crop, "image", null, imagePath, result);
-        } catch (RuntimeException e) {
-            imageStorage.delete(imagePath);
-            throw e;
-        }
+        return record(farmer, crop, "image", null, imageStorage.store(image), image.getContentType(), result);
     }
 
     private Crop resolveCrop(String cropName) {
@@ -52,13 +46,14 @@ public class PredictionService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Unknown crop: " + cropName));
     }
 
-    private PredictionResponse record(User farmer, Crop crop, String inputType, String text, String imagePath, HttpAiPredictionClient.AiResult result) {
+    private PredictionResponse record(User farmer, Crop crop, String inputType, String text, byte[] imageData, String imageContentType, HttpAiPredictionClient.AiResult result) {
         Diagnosis diagnosis = new Diagnosis();
         diagnosis.farmer = farmer;
         diagnosis.crop = crop;
         diagnosis.inputType = inputType;
         diagnosis.inputText = text;
-        diagnosis.imagePath = imagePath;
+        diagnosis.imageData = imageData;
+        diagnosis.imageContentType = imageContentType;
         diagnosis.diseaseNameRaw = result.disease();
         diagnosis.confidence = result.confidence();
         diagnosis.needsExpertReview = result.needsExpertReview();
@@ -71,6 +66,6 @@ public class PredictionService {
             conversation.diagnosis = diagnosis;
             conversations.save(conversation);
         }
-        return new PredictionResponse(diagnosis.id, result.disease(), result.confidence(), result.needsExpertReview(), result.message(), TreatmentResponse.from(null));
+        return new PredictionResponse(diagnosis.id, result.disease(), result.confidence() == null ? null : Math.round(result.confidence()) + "%", result.needsExpertReview(), result.message(), TreatmentResponse.from(null));
     }
 }

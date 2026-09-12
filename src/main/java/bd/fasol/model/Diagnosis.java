@@ -29,6 +29,9 @@ public class Diagnosis {
     @Column(columnDefinition = "TEXT")
     public String inputText;
     public String imagePath;
+    @Column(columnDefinition = "BYTEA")
+    public byte[] imageData;
+    public String imageContentType;
 
     @ManyToOne
     public Disease disease;

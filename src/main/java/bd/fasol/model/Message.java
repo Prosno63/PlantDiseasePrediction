@@ -25,6 +25,9 @@ public class Message {
   @Column(columnDefinition = "TEXT")
   public String body;
   public String imagePath;
+  @Column(columnDefinition = "BYTEA")
+  public byte[] imageData;
+  public String imageContentType;
   public boolean isRead;
   public Instant createdAt = Instant.now();
 }

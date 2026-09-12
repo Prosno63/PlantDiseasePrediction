@@ -70,7 +70,7 @@ public class HttpAiPredictionClient {
     private AiResult call(RestClient.RequestHeadersSpec<?> request) {
         try {
             AiResult raw = json.readValue(request.retrieve().body(String.class), AiResult.class);
-            Double confidence = raw.confidence() != null && raw.confidence() > 1 ? raw.confidence() / 100 : raw.confidence();
+            Double confidence = raw.confidence() != null && raw.confidence() <= 1 ? raw.confidence() * 100 : raw.confidence();
             return new AiResult(raw.disease(), confidence, raw.needsExpertReview(), raw.message());
         } catch (RestClientResponseException e) {
             String detail = e.getResponseBodyAsString();

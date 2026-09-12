@@ -158,6 +158,8 @@ CREATE TABLE IF NOT EXISTS diagnosis (
     input_type VARCHAR(32),
     input_text TEXT,
     image_path VARCHAR(255),
+    image_data BYTEA,
+    image_content_type VARCHAR(255),
     disease_id BIGINT,
     disease_name_raw VARCHAR(255),
     confidence DOUBLE PRECISION,
@@ -173,6 +175,10 @@ CREATE TABLE IF NOT EXISTS diagnosis (
     CONSTRAINT diagnosis_input_type_check CHECK (input_type IN ('image', 'text', 'voice') OR input_type IS NULL),
     CONSTRAINT diagnosis_outcome_check CHECK (outcome_feedback IN ('yes', 'no', 'somewhat') OR outcome_feedback IS NULL)
 );
+
+ALTER TABLE diagnosis
+    ADD COLUMN IF NOT EXISTS image_data BYTEA,
+    ADD COLUMN IF NOT EXISTS image_content_type VARCHAR(255);
 
 -- 6. Expert conversations and messages.
 CREATE TABLE IF NOT EXISTS conversation (
@@ -193,6 +199,8 @@ CREATE TABLE IF NOT EXISTS messages (
     sender_id BIGINT NOT NULL,
     body TEXT,
     image_path VARCHAR(255),
+    image_data BYTEA,
+    image_content_type VARCHAR(255),
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT messages_conversation_fk FOREIGN KEY (conversation_id) REFERENCES conversation (id),
