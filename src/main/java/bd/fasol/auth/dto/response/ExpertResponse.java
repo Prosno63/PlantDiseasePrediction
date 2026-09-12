@@ -12,8 +12,11 @@ public record ExpertResponse(
         String profileImageUrl,
         String designation,
         String qualification,
+        String visitAddress,
+        String expertType,
         List<Long> cropIds,
         boolean active,
+        boolean online,
         boolean acceptingConsultations,
         String availabilityStatus,
         List<Double> location,
@@ -24,7 +27,8 @@ public record ExpertResponse(
         List<Double> location = x.latitude == null || x.longitude == null
                 ? null : List.of(x.latitude, x.longitude);
         return new ExpertResponse(x.id, x.name, x.profileImageUrl, x.designation, x.qualification,
-                new ArrayList<>(x.cropIds), x.isActive, x.acceptingConsultations,
+                x.visitAddress, x.expertType, new ArrayList<>(x.cropIds), x.isActive, x.online,
+                x.acceptingConsultations,
                 x.availabilityStatus, location, x.displayOrder, x.updatedAt);
     }
 }

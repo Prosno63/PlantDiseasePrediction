@@ -149,6 +149,8 @@ public class AdminController {
         expert.designation = request.designation();
         expert.qualification = request.qualification();
         expert.specialization = request.specialization();
+        expert.visitAddress = request.visitAddress();
+        expert.expertType = request.expertType();
         if (request.available() != null) expert.available = request.available();
         if (request.online() != null) expert.online = request.online();
         expert.district = request.district();
@@ -182,6 +184,8 @@ public class AdminController {
         if (request.designation() != null) expert.designation = request.designation();
         if (request.qualification() != null) expert.qualification = request.qualification();
         if (request.specialization() != null) expert.specialization = request.specialization();
+        if (request.visitAddress() != null) expert.visitAddress = request.visitAddress();
+        if (request.expertType() != null) expert.expertType = request.expertType();
         if (request.available() != null) expert.available = request.available();
         if (request.online() != null) expert.online = request.online();
         if (request.district() != null) expert.district = request.district();

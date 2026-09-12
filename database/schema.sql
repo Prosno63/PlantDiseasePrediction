@@ -4,12 +4,7 @@
 
 BEGIN;
 
--- 1. Remove the deleted permission system before creating application tables.
-DROP TABLE IF EXISTS user_permissions;
-DROP TABLE IF EXISTS role_permissions;
-DROP TABLE IF EXISTS permissions;
-
--- 2. Core users table.
+-- 1. Core users table.
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
     phone_number VARCHAR(255) NOT NULL UNIQUE,
@@ -19,6 +14,8 @@ CREATE TABLE IF NOT EXISTS users (
     designation VARCHAR(255),
     qualification VARCHAR(255),
     specialization VARCHAR(255),
+    visit_address VARCHAR(255),
+    expert_type VARCHAR(255),
     available BOOLEAN NOT NULL DEFAULT TRUE,
     online BOOLEAN NOT NULL DEFAULT FALSE,
     district VARCHAR(255),
@@ -37,11 +34,13 @@ ALTER TABLE users
     ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0,
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
--- 3. Add columns introduced after the original users table was deployed.
+-- 2. Add columns introduced after the original users table was deployed.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image_url VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS designation VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS qualification VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS specialization VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS visit_address VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS expert_type VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS available BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS online BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS district VARCHAR(255);
@@ -49,7 +48,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS upazila VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
 
--- 4. Refresh tokens store only SHA-256 hashes, never bearer tokens.
+-- 3. Refresh tokens store only SHA-256 hashes, never bearer tokens.
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     id BIGSERIAL PRIMARY KEY,
     token_hash VARCHAR(64) NOT NULL,
@@ -96,7 +95,7 @@ CREATE INDEX IF NOT EXISTS refresh_tokens_user_idx ON refresh_tokens (user_id);
 DROP INDEX IF EXISTS refresh_tokens_active_idx;
 CREATE INDEX IF NOT EXISTS refresh_tokens_active_idx ON refresh_tokens (token_hash, revoked);
 
--- 5. Crop, disease, and treatment knowledge base.
+-- 4. Crop, disease, and treatment knowledge base.
 CREATE TABLE IF NOT EXISTS crop (
     id BIGSERIAL PRIMARY KEY,
     name_bn VARCHAR(255),
@@ -130,10 +129,6 @@ CREATE TABLE IF NOT EXISTS user_crop_ids (
     CONSTRAINT user_crop_ids_crop_fk FOREIGN KEY (crop_id) REFERENCES crop (id)
 );
 
-INSERT INTO crop (name_bn, name_en, image_url) VALUES
-    ('ধান', 'Rice', 'https://api.example.com/assets/crops/rice.png'),
-    ('বেগুন', 'Eggplant', 'https://api.example.com/assets/crops/eggplant.png');
-
 CREATE TABLE IF NOT EXISTS disease (
     id BIGSERIAL PRIMARY KEY,
     crop_id BIGINT NOT NULL,
@@ -155,7 +150,7 @@ CREATE TABLE IF NOT EXISTS treatment (
     CONSTRAINT treatment_disease_fk FOREIGN KEY (disease_id) REFERENCES disease (id)
 );
 
--- 6. Diagnosis history.
+-- 5. Diagnosis history.
 CREATE TABLE IF NOT EXISTS diagnosis (
     id BIGSERIAL PRIMARY KEY,
     farmer_id BIGINT NOT NULL,
@@ -179,7 +174,7 @@ CREATE TABLE IF NOT EXISTS diagnosis (
     CONSTRAINT diagnosis_outcome_check CHECK (outcome_feedback IN ('yes', 'no', 'somewhat') OR outcome_feedback IS NULL)
 );
 
--- 7. Expert conversations and messages.
+-- 6. Expert conversations and messages.
 CREATE TABLE IF NOT EXISTS conversation (
     id BIGSERIAL PRIMARY KEY,
     farmer_id BIGINT NOT NULL,
@@ -204,7 +199,7 @@ CREATE TABLE IF NOT EXISTS messages (
     CONSTRAINT messages_sender_fk FOREIGN KEY (sender_id) REFERENCES users (id)
 );
 
--- 8. Query indexes used by the API.
+-- 7. Query indexes used by the API.
 CREATE INDEX IF NOT EXISTS disease_crop_idx ON disease (crop_id);
 CREATE INDEX IF NOT EXISTS treatment_disease_idx ON treatment (disease_id);
 CREATE INDEX IF NOT EXISTS diagnosis_farmer_created_idx ON diagnosis (farmer_id, created_at DESC);
@@ -215,6 +210,3 @@ CREATE INDEX IF NOT EXISTS conversation_open_idx ON conversation (expert_id, res
 CREATE INDEX IF NOT EXISTS messages_conversation_created_idx ON messages (conversation_id, created_at);
 
 COMMIT;
-
-ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;

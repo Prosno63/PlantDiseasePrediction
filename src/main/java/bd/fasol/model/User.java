@@ -34,6 +34,8 @@ public class User {
     public String designation;
     public String qualification;
     public String specialization;
+    public String visitAddress;
+    public String expertType;
     public boolean available = true;
     public boolean online = false;
     public boolean isActive = true;

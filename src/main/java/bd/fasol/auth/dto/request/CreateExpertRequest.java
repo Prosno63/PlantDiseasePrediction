@@ -14,6 +14,8 @@ public record CreateExpertRequest(
         String designation,
         String qualification,
         String specialization,
+        String visitAddress,
+        String expertType,
         Boolean available,
         Boolean online,
         String district,
